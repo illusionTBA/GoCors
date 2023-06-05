@@ -22,7 +22,7 @@ func main() {
 
 		// Get the destination URL from the request path
 		destinationURL := r.URL.Path[1:] // Remove the leading forward slash
-
+		log.Printf(destinationURL)
 		// Get the headers from the query parameters
 		headers := r.URL.Query().Get("headers")
 
@@ -87,5 +87,6 @@ func main() {
 	})
 
 	// Start the server on port 3000
+	log.Printf("Server up @ localhost:3000")
 	log.Fatal(http.ListenAndServe(":3000", handler))
 }
