@@ -4,6 +4,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 )
 
 func main() {
@@ -19,8 +20,13 @@ func main() {
 			return
 		}
 
-		// Forward the request to the desired destination URL
+		// Get the destination URL from the request path
 		destinationURL := r.URL.Path[1:] // Remove the leading forward slash
+
+		// Get the headers from the query parameters
+		headers := r.URL.Query().Get("headers")
+
+		// Forward the request to the desired destination URL
 		req, err := http.NewRequest(r.Method, destinationURL, r.Body)
 		if err != nil {
 			log.Printf("Error creating request: %s", err.Error())
@@ -32,6 +38,19 @@ func main() {
 		for key, values := range r.Header {
 			for _, value := range values {
 				req.Header.Add(key, value)
+			}
+		}
+
+		// Add user-supplied headers to the destination request
+		if headers != "" {
+			headerList := strings.Split(headers, ",")
+			for _, header := range headerList {
+				headerParts := strings.SplitN(header, ":", 2)
+				if len(headerParts) == 2 {
+					key := strings.TrimSpace(headerParts[0])
+					value := strings.TrimSpace(headerParts[1])
+					req.Header.Set(key, value)
+				}
 			}
 		}
 
@@ -47,8 +66,11 @@ func main() {
 
 		// Copy the response headers from the destination server to the response writer
 		for key, values := range resp.Header {
-			for _, value := range values {
-				w.Header().Add(key, value)
+			// Exclude duplicate CORS headers
+			if !strings.HasPrefix(strings.ToLower(key), "access-control-") {
+				for _, value := range values {
+					w.Header().Add(key, value)
+				}
 			}
 		}
 
@@ -64,6 +86,6 @@ func main() {
 		}
 	})
 
-	// Start the server on port 8080
+	// Start the server on port 3000
 	log.Fatal(http.ListenAndServe(":3000", handler))
 }
